@@ -7,4 +7,4 @@ It is a app that that take stock market data for easy display and download
 - **nasdaq_screener_1629062295312.csv** is the data downloaded from NASDAQ website()
 - **equity_issuers.csv** is the data downloaded from SIX website()
 - **Euronext, SIX and NASDAQ.csv** are the data already update with the company information using its repective update py files.
-- The IBMF&BOVESPA data is taken straight to the web to the be displayed into the app
+- The IBMF&BOVESPA data is taken straight from the web to the be displayed into the app
