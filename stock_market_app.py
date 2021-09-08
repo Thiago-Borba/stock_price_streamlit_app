@@ -10,6 +10,13 @@ import altair as alt
 import SessionState
 from typing import Tuple
 import mplfinance as fplt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn import preprocessing
+from datetime import datetime, timedelta
+import itertools
 
 
 fund_list = ['P/L', 'P/VP', 'PSR' ,'Div.Yield', 'ROIC', 'ROE', 'Cresc. Rec.5a', 'Mrg Ebit', 'Mrg. Líq.' ]
@@ -33,6 +40,142 @@ NADAQ_list = sorted([
          ])
 
 
+# make a prediction if the price you increase or decrease base on radontress. Credits sklearn
+def random_forest_forecast(ticker):
+    # get ticker
+    tickerData = yf.Ticker(ticker)
+    # take one year of historical data
+    tickerDF = tickerData.history(period = '1d',
+                              start = (datetime.now() - timedelta(365)).strftime('%Y-%m-%d'),
+                              end = (datetime.now() + timedelta(3)).strftime('%Y-%m-%d'))
+
+    # Creating lags for close and volume
+    lista = ['Close', 'Volume']
+    for c in range(1,4):
+        a = str(c)
+        #b = "Close_lag_"+ a
+        for i in lista:
+            d = str(i)
+            b = d+"_lag_"+ a
+            tickerDF[b] = tickerDF[i].shift(c)
+
+    #creating shifted rolling mean
+    tickerDF['rolling_avg'] = tickerDF['Close'].rolling(7).mean()
+    tickerDF['rolling_avg'] = tickerDF['rolling_avg'].shift(1)
+
+    #creating a target variable [0,1]. is weird but works that way
+    tickerDF['target'] = tickerDF['Close'] - tickerDF['Close_lag_1']
+    tickerDF['target'].where(tickerDF['target'] >= 0, 0, inplace=True)
+    tickerDF['target'].where(tickerDF['target'] < 0.000000000000001, 1, inplace=True)
+
+    # creat a list of all columns except target
+    hs = list(tickerDF.columns)
+    hs.remove('target')
+
+    # take the trend out of the time series
+    for i in hs:
+        tickerDF[i] = tickerDF[i].diff(1)
+
+    # droping na values
+    tickerDF = tickerDF.dropna()
+
+    # substitute the values for standarzided values
+    min_max_scaler = preprocessing.MinMaxScaler()
+    x = tickerDF.values #returns a numpy array
+    x_scaled = min_max_scaler.fit_transform(x)
+    df_x_scaled = pd.DataFrame(x_scaled)
+    df_x_scaled.index = tickerDF.index
+    z = 0
+    for i in hs:
+        tickerDF[i] = df_x_scaled[z]
+        z = z+1
+
+    # drop nonused columns
+    tickerDF = tickerDF.drop(columns = ['Dividends', 'Stock Splits'])
+
+    # remove from the list columsn that cant/wont be used for X
+    hs.remove('Open')
+    hs.remove('High')
+    hs.remove('Low')
+    hs.remove('Dividends')
+    hs.remove('Stock Splits')
+    hs.remove('Volume')
+    hs.remove('Close')
+
+    #Create a list of all possible combinations of X variables [x1], [x1, x2], [x1, x3]....
+    lst = hs
+    combs = []
+
+    for i in range(1, len(lst)+1):
+        els = [list(x) for x in itertools.combinations(lst, i)]
+        combs.extend(els)
+
+    # check which X combination makes the best model and chose it
+    best_metrics = 0
+    best_list = []
+    y = tickerDF['target']
+
+    count = len(combs)
+    for i in combs:
+        hs = list(i)
+        X = tickerDF[hs]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.70, shuffle = False)
+        clf=RandomForestClassifier(n_estimators = 100, random_state=7)
+        clf.fit(X_train,y_train)
+        y_pred=clf.predict(X_test)
+        count = count -1
+        print(count)
+
+        if metrics.accuracy_score(y_test, y_pred) > best_metrics:
+            best_metrics = metrics.accuracy_score(y_test, y_pred)
+            best_list = hs
+
+    # build the model with the best X
+    X = tickerDF[best_list]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.70, shuffle = False)
+    clf=RandomForestClassifier(n_estimators = 100, random_state=7)
+    clf.fit(X_train,y_train)
+    y_pred=clf.predict(X_test)
+
+    # take model metrics
+    tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
+    sensibilidade = tp/(tp + fp)
+    especificidade = tn/(tn + fn)
+    precisao = metrics.accuracy_score(y_test, y_pred)
+
+    #Substitute the list found in order to update the values for future prediction
+    abc_array = np.array(best_list)
+    transdict = {'Close_lag_1': 'Close',
+             'Close_lag_2': 'Close_lag_1',
+             'Close_lag_3': 'Close_lag_2',
+             'Close_lag_4': 'Close_lag_3',
+             'Close_lag_5': 'Close_lag_4',
+             'Close_lag_6': 'Close_lag_5',
+             'Close_lag_7': 'Close_lag_6',
+             'Volume_lag_1': 'Volume',
+             'Volume_lag_2': 'Volume_lag_1',
+             'Volume_lag_3': 'Volume_lag_2',
+             'Volume_lag_4': 'Volume_lag_3',
+             'Volume_lag_5': 'Volume_lag_4',
+             'Volume_lag_6': 'Volume_lag_5',
+             'Volume_lag_7': 'Volume_lag_6',
+             'rolling_avg':'rolling_avg'}
+    phoenetic = [transdict[letter] for letter in abc_array]
+
+
+    #predict if the stock will go up or down
+    new_pred = tickerDF.iloc[0:1][phoenetic]
+    new_y_pred=clf.predict(new_pred)
+    futuro = ''
+    if new_y_pred[0] == 0:
+        futuro = "Down"
+    else:
+        futuro = "Up"
+
+
+    return sensibilidade, especificidade, precisao, futuro
+
+
 # fucntion to make the data downloadable(dataprofessor)
 def filedownload(df, df_name):
     csv = df.to_csv(index=False)
@@ -40,9 +183,17 @@ def filedownload(df, df_name):
     href = f'<a href="data:file/csv;base64,{b64}" download="{df_name}">Download CSV File</a>'
     return href
 
+#function to transform number into date : not being used
+def num_to_time(date):
+    try:
+        timestamp = datetime.fromtimestamp(date).strftime('%Y-%m-%d')
 
+    except:
+        timestamp = "No info"
 
+    return timestamp
 
+#create lists  for the fundamentals dataframe
 def fundlist(lista):
     fund_list_z = []
     fund_list_s_z = []
@@ -137,7 +288,7 @@ def statick_candlestick(tickerDF):
         return fig
 
 
-# Create a candlestick layers using altair chart
+# Create a candlestick layers using altair chart : not being used
 def candlestick(tickerDF: pd.DataFrame) -> Tuple[alt.Chart, alt.Chart, alt.Chart]:
 
     # altair chart needs a date colum, it seems not work with the index
@@ -174,7 +325,7 @@ def candlestick(tickerDF: pd.DataFrame) -> Tuple[alt.Chart, alt.Chart, alt.Chart
 
     return rule, bar, volume
 
-# combining the layers to plot the chart
+# combining the layers to plot the chart: not being used
 def int_chart(rule: alt.Chart, bar: alt.Chart, volume: alt.Chart, method = 0) -> alt.VConcatChart:
     if method == 0:
         combined =  ((rule+bar).interactive()&volume).resolve_scale(x = 'shared')
@@ -219,15 +370,14 @@ def load_fundamentus():
 # Set page configuration
 st.set_page_config(
         page_title="Easy Stock Exchange Data",
-        page_icon="🏠",
+        page_icon="📈",
         initial_sidebar_state="expanded")
-# Title
-st.title('Stock Exchange Markets app (BM&FBOVESPA, Euronext, SIX, NASDAQ)')
+#st.title('Stock Exchange Markets app (BM&FBOVESPA, Euronext, SIX, NASDAQ)')
 
 # Inroduction
-st.markdown("""
+st.sidebar.title('Stock Exchange Markets app')
+st.sidebar.markdown("""
 This app retrieves the list of the papers from BM&FBOVESPA, Euronext, SIX and NASDAQ displaying them in a easy and downloadable way
-* **Python libraries:** base64, pandas, streamlit, numpy, matplotlib, seaborn, Soup
 * **Data source:** [Fundamentus](https://www.fundamentus.com.br/), [NASDAQ](https://www.nasdaq.com/), [Euronext](https://www.euronext.com/), [SIX](https://www.six-group.com/en/products-services/the-swiss-stock-exchange.html), [Yahoo finance](https://finance.yahoo.com/).
 * **Created by:** [Thiago Borba](https://www.linkedin.com/in/thiago-da-silva-borba-407351123/)
 """)
@@ -235,7 +385,7 @@ This app retrieves the list of the papers from BM&FBOVESPA, Euronext, SIX and NA
 # create a diferente page for every stock market
 session_state = SessionState.get(workflow='BM&FBOVESPA')
 
-st.sidebar.title('Stock Exchange Market')
+#st.sidebar.title('Stock Exchange Market')
 # stock market slide box
 session_state.workflow = st.sidebar.selectbox('Exchange Market', ['BM&FBOVESPA', 'Euronext', 'NASDAQ', 'SIX'])
 
@@ -245,12 +395,14 @@ if session_state.workflow == 'BM&FBOVESPA':
     df = load_fundamentus()
     df = zscore(df)
     #setor = df.groupby('Setor')
-    # take the list of Sector to choose
 
+    # put the data to be downloaded
     df_name = "BM&FBOVESPA.csv"
     st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
+    # take the list of Sector to choose
     sorted_sector_unique = sorted(df['Setor'].unique())
+    # Sector side bar
     session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, "Agropecuária")
 
     #take the list of subsector to choose
@@ -259,8 +411,8 @@ if session_state.workflow == 'BM&FBOVESPA':
 
     #take the list of companies to choose
     sorted_company_unique =  sorted(df[ (df['Subsetor'].isin(session_state.data_type)) ]['Nome'].unique())
-    #make a dataframe for further download
-    selection_dataframe = df[ (df['Subsetor'].isin(session_state.data_type))]
+        ##make a dataframe for further download
+        ##selection_dataframe = df[ (df['Subsetor'].isin(session_state.data_type))]
     #companies list continuation
     session_state.data_type = st.sidebar.selectbox("Company:", sorted_company_unique)
 
@@ -273,13 +425,14 @@ if session_state.workflow == 'BM&FBOVESPA':
     lista = [session_state.data_type]
     df_selected_sector = df[ (df['Papel'].isin(lista)) ]
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
+
     #get data on this ticker
-
     tickerData = yf.Ticker(tickerSymbol)
-    # get historical prices for this ticker
 
-    # Open High Low Close  Volume Dividens Stock Splits
-    ##df_selected_sector
+
+
+
+    #taking pieces of information about the selected ticker
     nome = df_selected_sector['Nome'].unique()[0]
     papel = df_selected_sector['Papel'].unique()[0]
     setor = df_selected_sector['Setor'].unique()[0]
@@ -290,15 +443,14 @@ if session_state.workflow == 'BM&FBOVESPA':
     pl_s_zscore = df_selected_sector['P/L_s_zscore'].unique()[0]
     pv = df_selected_sector['P/L'].unique()[0]
 
+    #building the lists for the fundamentals dataframe creation
     fund, zscore , s_zscore = fundlist(fund_list)
 
+    #creating the fundamentals dataframe
     hue = pd.DataFrame(columns = fund_list, index = ['value', 'zscore', 'Setorial_zscore'])
     hue.iloc[0] = fund
     hue.iloc[1] = zscore
     hue.iloc[2] = s_zscore
-
-    #st.write(f""" ## Selection Table  """)
-    #selection_dataframe[['Setor', 'Subsetor', 'Nome', 'Papel' ]]
 
     st.write(f""" # {nome} - {papel} """)
 
@@ -306,37 +458,38 @@ if session_state.workflow == 'BM&FBOVESPA':
                 Sector: {setor} \n
                Subsetor: {subsetor}   """)
     st.write(f"""## Fundamentals: {data_b} """ )
+    st.write("""In statistics, the **z-score** is the number of standard deviations by which the value of a raw score
+                    (i.e., an observed value or data point) is above or below the mean value of what is being observed or measured.
+                    Raw scores above the mean have positive standard scores,
+                    while those below the mean have negative standard scores. [Wikipedia](https://en.wikipedia.org/wiki/Standard_score)""")
+    #display fundamentals dataframe
     hue
 
-    #df_name = "BM&FBOVESPA.csv"
-    #st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
     st.write('## Historical data')
 
-
-
-    #st.write(f""" ## Subsetor: {subsetor} """)
-
+    # user input historical prices for this ticker
     start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
-
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
 
+    # fetch historical prices for this ticker
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
+    # historical prices download
     df_name = f"{papel}.csv"
     st.markdown(filedownload(tickerDF, df_name), unsafe_allow_html=True)
 
-    ## interactive candlestick
+        ## interactive candlestick
 
-        #tickerDF['Date'] = tickerDF.index
+            #tickerDF['Date'] = tickerDF.index
 
-        #rule, bar, volume = candlestick(tickerDF)
+            #rule, bar, volume = candlestick(tickerDF)
 
-        #combined =  ((rule+bar).interactive()&volume).resolve_scale(x = 'shared')
+            #combined =  ((rule+bar).interactive()&volume).resolve_scale(x = 'shared')
 
-        #st.altair_chart(combined, use_container_width=True)
+            #st.altair_chart(combined, use_container_width=True)##
 
-
+    # Display static candlestick
     try:
         fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
@@ -344,95 +497,97 @@ if session_state.workflow == 'BM&FBOVESPA':
     except:
         st.write('Data not found, check the dates')
 
+    if st.button('predict Up or Down'):
+        try:
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            st.write(f"""## {futuro}
+            * Accuracy: {precisao:.2f}
+            * Specificity: {especificidade:.2f}
+            * Sensibility: {sensibilidade:.2f}
+            """)
+        except:
+            st.write('Not enough data')
+    else:
+        st.write('it may take several minutes')
 
 
-        #st.write("""
-        # Closing Price
-        #""")
-        #st.line_chart(tickerDF.Close)
-        #st.write("""
-        # Volume
-        #""")
-        #st.line_chart(tickerDF.Volume)
-        #session_state.data_type = st.sidebar.selectbox("Papel:", ('klabim', 'petrobras'), index=0)
-
-        # Filtering data
-        ## df_selected_sector = df['Nome']['session_state.data_type']
 
 elif session_state.workflow == 'NASDAQ':
     df = pd.read_csv('NASDAQ.csv')
     df = zscore(df, "Industry")
 
 
-
+    #adjusting the name of columns to fit the code
     df['Ticker'] = df['Symbol']
     df['Sector'] = df['Sector'].replace({"":"Not found"})
-    df['Industry'] = df['Industry'].replace({"":"Not found"})
+    df['Industry'] = df['Industry'].replace({"":"No info"})
+    df['Sector'] = df['Sector'].replace({"":"Not found"})
     df["Industry"] = df.apply(lambda x: str(x["Industry"]),axis=1)
     df["Sector"] = df.apply(lambda x: str(x["Sector"]),axis=1)
-
 
     df = df.drop(columns = 'Unnamed: 0')
     df_name = "NASDAQ.csv"
     st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
+
     sorted_sector_unique = sorted(df['Sector'].unique())
     session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
 
-             #take the list of subsector to choose
+    #take the list of subsector to choose
     sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
     session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
 
-             #take the list of companies to choose
-    sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['Name'].unique())
-             #make a dataframe for further download
-    selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
-             #companies list continuation
+    #take the list of companies to choose
+    sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['longName'].unique())
+     #$make a dataframe for further download
+     ##selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
+    #companies list continuation
     session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
 
-             #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
+    #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
     lista = [session_state.data_type]
-    papers = sorted(df[ (df['Name'].isin(lista)) ]['Symbol'].unique())
+    papers = sorted(df[ (df['longName'].isin(lista)) ]['Symbol'].unique())
     session_state.data_type = st.sidebar.radio("Paper:", papers)
 
              # get the Ticker from the data frame
     lista = [session_state.data_type]
     df_selected_sector = df[ (df['Symbol'].isin(lista)) ]
 
-    nome = df_selected_sector['Name'].unique()[0]
+    nome = df_selected_sector['longName'].unique()[0]
     papel = df_selected_sector['Symbol'].unique()[0]
     setor = df_selected_sector['Sector'].unique()[0]
     subsetor = df_selected_sector['Industry'].unique()[0]
-    data_b = '27/08/2021'
+    quarter = df_selected_sector['mostRecentQuarter'].unique()[0]
 
 
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
-
     tickerData = yf.Ticker(tickerSymbol)
 
     fund, zscore , s_zscore = fundlist(NADAQ_list)
-
-
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'Industry_zscore'])
     hue.iloc[0] = fund
     hue.iloc[1] = zscore
     hue.iloc[2] = s_zscore
 
+
     st.write(f""" # {nome} - {papel} """)
 
     st.write(f"""
-                Sector: {setor} \n
-               Subsetor: {subsetor}   """)
-    st.write(f"""## Fundamentals: {data_b} """ )
+            Sector: {setor} \n
+            Subsetor: {subsetor}   """)
+
+
+    st.write(f"""## Fundamentals: {quarter} """ )
+    st.write("""In statistics, the **z-score** is the number of standard deviations by which the value of a raw score
+                    (i.e., an observed value or data point) is above or below the mean value of what is being observed or measured.
+                    Raw scores above the mean have positive standard scores,
+                    while those below the mean have negative standard scores. [Wikipedia](https://en.wikipedia.org/wiki/Standard_score)""")
     hue
 
 
     st.write('## Historical data')
-
     start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
-
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
-
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
     df_name = f"{papel}.csv"
@@ -441,48 +596,65 @@ elif session_state.workflow == 'NASDAQ':
     try:
         fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
-        tickerDF
+        #tickerDF
     except:
         st.write('Data not found, check the dates')
 
+    if st.button('predict Up or Down'):
+        try:
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            st.write(f"""## {futuro}
+            * Accuracy: {precisao:.2f}
+            * Specificity: {especificidade:.2f}
+            * Sensibility: {sensibilidade:.2f}
+            """)
+        except:
+            st.write('Not enough data')
+    else:
+        st.write('it may take several minutes')
+
 elif session_state.workflow == 'SIX':
-
-
 
 
     df = pd.read_csv('SIX.csv')
     df = zscore(df, "sector")
 
+    #adjusting columns names
     df = df.rename(columns={"industry": "Industry", "ticker": "Ticker", 'Company': 'Name', 'sector': 'Sector'})
     df = df.drop(columns = 'Unnamed: 0')
+
+    #making data downloadable
     df_name = "SIX.csv"
     st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
+    #removing na and making sure that Sector and Industry are stings
     df['Sector'] = df['Sector'].replace({"":"Not found"})
     df['Industry'] = df['Industry'].replace({"":"Not found"})
     df["Industry"] = df.apply(lambda x: str(x["Industry"]),axis=1)
     df["Sector"] = df.apply(lambda x: str(x["Sector"]),axis=1)
 
+
+    #take the list of sectors to choose
     sorted_sector_unique = sorted(df['Sector'].unique())
     session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
 
-             #take the list of subsector to choose
+     #take the list of industries to choose
     sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
     session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
 
-             #take the list of companies to choose
+     #take the list of companies to choose
     sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['Name'].unique())
-             #make a dataframe for further download
-    selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
-             #companies list continuation
+          ##make a dataframe for further download
+          ##selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
+     #companies list continuation
     session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
 
-             #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
+    #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
     lista = [session_state.data_type]
     papers = sorted(df[ (df['Name'].isin(lista)) ]['Symbol'].unique())
     session_state.data_type = st.sidebar.radio("Paper:", papers)
 
-             # get the Ticker from the data frame
+     # get the Ticker from the data frame
     lista = [session_state.data_type]
     df_selected_sector = df[ (df['Symbol'].isin(lista)) ]
 
@@ -493,9 +665,9 @@ elif session_state.workflow == 'SIX':
     country = df_selected_sector['Country'].unique()[0]
     class_share = df_selected_sector['Class of Share'].unique()[0]
     currency = df_selected_sector['Traded Currency'].unique()[0]
-
+    quarter = df_selected_sector['mostRecentQuarter'].unique()[0]
     subsetor = df_selected_sector['Industry'].unique()[0]
-    data_b = '27/08/2021'
+
 
 
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
@@ -510,6 +682,7 @@ elif session_state.workflow == 'SIX':
     hue.iloc[1] = zscore
     hue.iloc[2] = s_zscore
 
+
     st.write(f""" # {nome} - {papel} """)
 
     st.write(f"""
@@ -518,7 +691,11 @@ elif session_state.workflow == 'SIX':
                Country: {country}\n
                Traded currency: {currency}\n
                Class of share: {class_share}\n """)
-    st.write(f"""## Fundamentals: {data_b} """ )
+    st.write(f"""## Fundamentals: {quarter} """ )
+    st.write("""In statistics, the **z-score** is the number of standard deviations by which the value of a raw score
+                    (i.e., an observed value or data point) is above or below the mean value of what is being observed or measured.
+                    Raw scores above the mean have positive standard scores,
+                    while those below the mean have negative standard scores. [Wikipedia](https://en.wikipedia.org/wiki/Standard_score)""")
     hue
 
 
@@ -537,31 +714,56 @@ elif session_state.workflow == 'SIX':
     try:
         fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
-        tickerDF
+        #tickerDF
     except:
         st.write('Data not found, check the dates')
+
+    if st.button('predict Up or Down'):
+        try:
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            st.write(f"""## {futuro}
+            * Accuracy: {precisao:.2f}
+            * Specificity: {especificidade:.2f}
+            * Sensibility: {sensibilidade:.2f}
+            """)
+        except:
+            st.write('Not enough data')
+    else:
+        st.write('it may take several minutes')
+
+
 
 
 
 elif session_state.workflow == 'Euronext':
 
-    df = pd.read_csv('Euronext.csv')
+    df = pd.read_csv('Euronext.csv', encoding = 'UTF-8' )
+
+    # "translating" some letters to UTF-8
+    for i in list(df.select_dtypes(include='object').columns):
+        df[i] = df.apply(lambda x : str(x[i]).replace('?','ø').replace('??','Ø'), axis = 1)
+
+
     df = zscore(df, "sector")
 
+    #adjusting the columns name for the code
     df = df.rename(columns={"industry": "Industry", "ticker": "Ticker", 'Company': 'Name', 'sector': 'Sector'})
     df = df.drop(columns = 'Unnamed: 0')
+    #make the data downloadable
     df_name = "Euronext.csv"
     st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
+    #replacing NA and making sure that industry and Sector are strings
     df['Sector'] = df['Sector'].replace({"":"Not found"})
     df['Industry'] = df['Industry'].replace({"":"Not found"})
     df["Industry"] = df.apply(lambda x: str(x["Industry"]),axis=1)
     df["Sector"] = df.apply(lambda x: str(x["Sector"]),axis=1)
 
+    #sort by city
     sorted_sector_unique = sorted(df['City'].unique())
     session_state.data_type = st.sidebar.multiselect("City:", sorted_sector_unique, sorted_sector_unique)
 
-    #take the list of subsector to choose
+
     sorted_subsector_unique = sorted(df[ (df['City'].isin(session_state.data_type)) ]['Sector'].unique())
     session_state.data_type = st.sidebar.multiselect("Sector:", sorted_subsector_unique, sorted_subsector_unique[0])
 
@@ -571,21 +773,20 @@ elif session_state.workflow == 'Euronext':
 
     #take the list of subsector to choose
     sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
-    session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
+    session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique)
 
     #take the list of companies to choose
     sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['Name'].unique())
-    #make a dataframe for further download
-    selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
-             #companies list continuation
+      ##selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
+    #companies list continuation
     session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
 
-             #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
+    #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
     lista = [session_state.data_type]
     papers = sorted(df[ (df['Name'].isin(lista)) ]['Symbol'].unique())
     session_state.data_type = st.sidebar.radio("Paper:", papers)
 
-             # get the Ticker from the data frame
+    # get the Ticker from the data frame
     lista = [session_state.data_type]
     df_selected_sector = df[ (df['Symbol'].isin(lista)) ]
 
@@ -596,9 +797,8 @@ elif session_state.workflow == 'Euronext':
     country = df_selected_sector['City'].unique()[0]
     class_share = df_selected_sector['Market'].unique()[0]
     currency = df_selected_sector['Trading Currency'].unique()[0]
-
+    quarter = df_selected_sector['mostRecentQuarter'].unique()[0]
     subsetor = df_selected_sector['Industry'].unique()[0]
-    data_b = '27/08/2021'
 
 
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
@@ -621,25 +821,37 @@ elif session_state.workflow == 'Euronext':
                City: {country}\n
                Traded currency: {currency}\n
                Market: {class_share}\n """)
-    st.write(f"""## Fundamentals: {data_b} """ )
+    st.write(f"""## Fundamentals: {quarter} """ )
+    st.write("""In statistics, the **z-score** is the number of standard deviations by which the value of a raw score
+                    (i.e., an observed value or data point) is above or below the mean value of what is being observed or measured.
+                    Raw scores above the mean have positive standard scores,
+                    while those below the mean have negative standard scores. [Wikipedia](https://en.wikipedia.org/wiki/Standard_score)""")
     hue
 
 
     st.write('## Historical data')
-
-
     start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
-
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
-
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
-
     df_name = f"{papel}.csv"
     st.markdown(filedownload(tickerDF, df_name), unsafe_allow_html=True)
-
     try:
         fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
-        tickerDF
+        #tickerDF
     except:
         st.write('Data not found, check the dates')
+
+
+    if st.button('predict Up or Down'):
+        try:
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            st.write(f"""## {futuro}
+            * Accuracy: {precisao:.2f}
+            * Specificity: {especificidade:.2f}
+            * Sensibility: {sensibilidade:.2f}
+            """)
+        except:
+            st.write('Not enough data')
+    else:
+        st.write('it may take several minutes')
