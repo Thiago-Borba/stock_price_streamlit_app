@@ -493,7 +493,7 @@ if session_state.workflow == 'BM&FBOVESPA':
     try:
         fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
-        tickerDF
+        #tickerDF
     except:
         st.write('Data not found, check the dates')
 
