@@ -765,11 +765,12 @@ elif session_state.workflow == 'Euronext':
 
 
     sorted_subsector_unique = sorted(df[ (df['City'].isin(session_state.data_type)) ]['Sector'].unique())
+     
+    # make sure that the filter only takes the choosen cities 
+    df = df[ (df['City'].isin(session_state.data_type)) ]
+         
     session_state.data_type = st.sidebar.multiselect("Sector:", sorted_subsector_unique, sorted_subsector_unique[0])
 
-
-    #sorted_sector_unique = sorted(df['Sector'].unique())
-    #session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
 
     #take the list of subsector to choose
     sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
