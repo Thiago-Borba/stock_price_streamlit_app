@@ -19,8 +19,7 @@ from datetime import datetime, timedelta
 import itertools
 
 
-end_date = (datetime.now() - timedelta(30))
-start = (datetime.now() + timedelta(3))
+start_date = (datetime.now() - timedelta(30))
 fund_list = ['P/L', 'P/VP', 'PSR' ,'Div.Yield', 'ROIC', 'ROE', 'Cresc. Rec.5a', 'Mrg Ebit', 'Mrg. Líq.' ]
 
 NADAQ_list = sorted([
@@ -471,7 +470,7 @@ if session_state.workflow == 'BM&FBOVESPA':
     st.write('## Historical data')
 
     # user input historical prices for this ticker
-    start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
+    start = st.date_input ( "Start date" , value=start_date , min_value=None , max_value=None , key=None )
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
 
     # fetch historical prices for this ticker
@@ -588,7 +587,7 @@ elif session_state.workflow == 'NASDAQ':
 
 
     st.write('## Historical data')
-    start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
+    start = st.date_input ( "Start date" , value=start_date , min_value=None , max_value=None , key=None )
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
@@ -704,9 +703,9 @@ elif session_state.workflow == 'SIX':
     st.write('## Historical data')
 
 
-    start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
+    start = st.date_input ( "Start date" , value=start_date , min_value=None , max_value=None , key=None )
 
-    end = st.date_input( "End date" , value=end_date , min_value=None , max_value=None , key=None )
+    end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
 
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
@@ -833,7 +832,7 @@ elif session_state.workflow == 'Euronext':
 
 
     st.write('## Historical data')
-    start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
+    start = st.date_input ( "Start date" , value=start_date , min_value=None , max_value=None , key=None )
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
     df_name = f"{papel}.csv"
