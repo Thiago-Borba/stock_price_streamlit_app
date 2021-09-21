@@ -19,6 +19,8 @@ from datetime import datetime, timedelta
 import itertools
 
 
+end_date = (datetime.now() - timedelta(30)).strftime('%Y-%m-%d')
+start = (datetime.now() + timedelta(3)).strftime('%Y-%m-%d')
 fund_list = ['P/L', 'P/VP', 'PSR' ,'Div.Yield', 'ROIC', 'ROE', 'Cresc. Rec.5a', 'Mrg Ebit', 'Mrg. Líq.' ]
 
 NADAQ_list = sorted([
@@ -704,7 +706,7 @@ elif session_state.workflow == 'SIX':
 
     start = st.date_input ( "Start date" , value=None , min_value=None , max_value=None , key=None )
 
-    end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
+    end = st.date_input( "End date" , value=end_date , min_value=None , max_value=None , key=None )
 
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
