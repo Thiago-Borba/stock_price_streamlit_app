@@ -19,8 +19,8 @@ from datetime import datetime, timedelta
 import itertools
 
 
-end_date = (datetime.now() - timedelta(30)).strftime('%Y-%m-%d')
-start = (datetime.now() + timedelta(3)).strftime('%Y-%m-%d')
+end_date = (datetime.now() - timedelta(30))
+start = (datetime.now() + timedelta(3))
 fund_list = ['P/L', 'P/VP', 'PSR' ,'Div.Yield', 'ROIC', 'ROE', 'Cresc. Rec.5a', 'Mrg Ebit', 'Mrg. Líq.' ]
 
 NADAQ_list = sorted([
