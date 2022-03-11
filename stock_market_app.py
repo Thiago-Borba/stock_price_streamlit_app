@@ -7,7 +7,7 @@ import numpy as np
 import yfinance as yf
 import altair as alt
 #Jaredstock code
-import SessionState
+#import SessionState
 from typing import Tuple
 import mplfinance as fplt
 from sklearn.ensemble import RandomForestClassifier
@@ -384,13 +384,14 @@ This app retrieves the list of the papers from BM&FBOVESPA, Euronext, SIX and NA
 """)
 
 # create a diferente page for every stock market
-session_state = SessionState.get(workflow='BM&FBOVESPA')
+if 'mercado' not in st.session_state:
+st.st.session_state.market = 'BM&FBOVESPA'
 
 #st.sidebar.title('Stock Exchange Market')
 # stock market slide box
-session_state.workflow = st.sidebar.selectbox('Exchange Market', ['BM&FBOVESPA', 'Euronext', 'NASDAQ', 'SIX'])
+st.session_state.market = st.sidebar.selectbox('Exchange Market', ['BM&FBOVESPA', 'Euronext', 'NASDAQ', 'SIX'])
 
-if session_state.workflow == 'BM&FBOVESPA':
+if st.session_state.market == 'BM&FBOVESPA':
 
     # upload the b3 table
     df = load_fundamentus()
@@ -404,26 +405,26 @@ if session_state.workflow == 'BM&FBOVESPA':
     # take the list of Sector to choose
     sorted_sector_unique = sorted(df['Setor'].unique())
     # Sector side bar
-    session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, "Agropecuária")
+    st.session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, "Agropecuária")
 
     #take the list of subsector to choose
-    sorted_subsector_unique = sorted(df[ (df['Setor'].isin(session_state.data_type)) ]['Subsetor'].unique())
-    session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique,sorted_subsector_unique)
+    sorted_subsector_unique = sorted(df[ (df['Setor'].isin(st.session_state.data_type)) ]['Subsetor'].unique())
+    st.session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique,sorted_subsector_unique)
 
     #take the list of companies to choose
-    sorted_company_unique =  sorted(df[ (df['Subsetor'].isin(session_state.data_type)) ]['Nome'].unique())
+    sorted_company_unique =  sorted(df[ (df['Subsetor'].isin(st.session_state.data_type)) ]['Nome'].unique())
         ##make a dataframe for further download
-        ##selection_dataframe = df[ (df['Subsetor'].isin(session_state.data_type))]
+        ##selection_dataframe = df[ (df['Subsetor'].isin(st.session_state.data_type))]
     #companies list continuation
-    session_state.data_type = st.sidebar.selectbox("Company:", sorted_company_unique)
+    st.session_state.data_type = st.sidebar.selectbox("Company:", sorted_company_unique)
 
     #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     papers = sorted(df[ (df['Nome'].isin(lista)) ]['Papel'].unique())
-    session_state.data_type = st.sidebar.radio("Papel:", papers)
+    st.session_state.data_type = st.sidebar.radio("Papel:", papers)
 
     # get the Ticker from the data frame
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     df_selected_sector = df[ (df['Papel'].isin(lista)) ]
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
 
@@ -513,7 +514,7 @@ if session_state.workflow == 'BM&FBOVESPA':
 
 
 
-elif session_state.workflow == 'NASDAQ':
+elif st.session_state.market == 'NASDAQ':
     df = pd.read_csv('NASDAQ.csv')
     df = zscore(df, "Industry")
 
@@ -532,26 +533,26 @@ elif session_state.workflow == 'NASDAQ':
 
 
     sorted_sector_unique = sorted(df['Sector'].unique())
-    session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
+    st.session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
 
     #take the list of subsector to choose
-    sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
-    session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
+    sorted_subsector_unique = sorted(df[ (df['Sector'].isin(st.session_state.data_type)) ]['Industry'].unique())
+    st.session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
 
     #take the list of companies to choose
-    sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['longName'].unique())
+    sorted_company_unique =  sorted(df[ (df['Industry'].isin(st.session_state.data_type)) ]['longName'].unique())
      #$make a dataframe for further download
-     ##selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
+     ##selection_dataframe = df[ (df['Industry'].isin(st.session_state.data_type))]
     #companies list continuation
-    session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
+    st.session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
 
     #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     papers = sorted(df[ (df['longName'].isin(lista)) ]['Symbol'].unique())
-    session_state.data_type = st.sidebar.radio("Paper:", papers)
+    st.session_state.data_type = st.sidebar.radio("Paper:", papers)
 
              # get the Ticker from the data frame
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     df_selected_sector = df[ (df['Symbol'].isin(lista)) ]
 
     nome = df_selected_sector['longName'].unique()[0]
@@ -614,7 +615,7 @@ elif session_state.workflow == 'NASDAQ':
     else:
         st.write('it may take several minutes')
 
-elif session_state.workflow == 'SIX':
+elif st.session_state.market == 'SIX':
 
 
     df = pd.read_csv('SIX.csv')
@@ -637,26 +638,26 @@ elif session_state.workflow == 'SIX':
 
     #take the list of sectors to choose
     sorted_sector_unique = sorted(df['Sector'].unique())
-    session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
+    st.session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, sorted_sector_unique[0])
 
      #take the list of industries to choose
-    sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
-    session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
+    sorted_subsector_unique = sorted(df[ (df['Sector'].isin(st.session_state.data_type)) ]['Industry'].unique())
+    st.session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique[0])
 
      #take the list of companies to choose
-    sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['Name'].unique())
+    sorted_company_unique =  sorted(df[ (df['Industry'].isin(st.session_state.data_type)) ]['Name'].unique())
           ##make a dataframe for further download
-          ##selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
+          ##selection_dataframe = df[ (df['Industry'].isin(st.session_state.data_type))]
      #companies list continuation
-    session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
+    st.session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
 
     #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     papers = sorted(df[ (df['Name'].isin(lista)) ]['Symbol'].unique())
-    session_state.data_type = st.sidebar.radio("Paper:", papers)
+    st.session_state.data_type = st.sidebar.radio("Paper:", papers)
 
      # get the Ticker from the data frame
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     df_selected_sector = df[ (df['Symbol'].isin(lista)) ]
 
 
@@ -736,7 +737,7 @@ elif session_state.workflow == 'SIX':
 
 
 
-elif session_state.workflow == 'Euronext':
+elif st.session_state.market == 'Euronext':
 
     df = pd.read_csv('Euronext.csv', encoding = 'UTF-8' )
 
@@ -762,34 +763,34 @@ elif session_state.workflow == 'Euronext':
 
     #sort by city
     sorted_sector_unique = sorted(df['City'].unique())
-    session_state.data_type = st.sidebar.multiselect("City:", sorted_sector_unique, sorted_sector_unique)
+    st.session_state.data_type = st.sidebar.multiselect("City:", sorted_sector_unique, sorted_sector_unique)
 
 
-    sorted_subsector_unique = sorted(df[ (df['City'].isin(session_state.data_type)) ]['Sector'].unique())
+    sorted_subsector_unique = sorted(df[ (df['City'].isin(st.session_state.data_type)) ]['Sector'].unique())
      
     # make sure that the filter only takes the choosen cities 
-    df = df[ (df['City'].isin(session_state.data_type)) ]
+    df = df[ (df['City'].isin(st.session_state.data_type)) ]
          
-    session_state.data_type = st.sidebar.multiselect("Sector:", sorted_subsector_unique, sorted_subsector_unique[0])
+    st.session_state.data_type = st.sidebar.multiselect("Sector:", sorted_subsector_unique, sorted_subsector_unique[0])
 
 
     #take the list of subsector to choose
-    sorted_subsector_unique = sorted(df[ (df['Sector'].isin(session_state.data_type)) ]['Industry'].unique())
-    session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique)
+    sorted_subsector_unique = sorted(df[ (df['Sector'].isin(st.session_state.data_type)) ]['Industry'].unique())
+    st.session_state.data_type = st.sidebar.multiselect("Industry:", sorted_subsector_unique, sorted_subsector_unique)
 
     #take the list of companies to choose
-    sorted_company_unique =  sorted(df[ (df['Industry'].isin(session_state.data_type)) ]['Name'].unique())
-      ##selection_dataframe = df[ (df['Industry'].isin(session_state.data_type))]
+    sorted_company_unique =  sorted(df[ (df['Industry'].isin(st.session_state.data_type)) ]['Name'].unique())
+      ##selection_dataframe = df[ (df['Industry'].isin(st.session_state.data_type))]
     #companies list continuation
-    session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
+    st.session_state.data_type = st.sidebar.selectbox("Name:", sorted_company_unique)
 
     #radio boxes for the papers - make a list to work on the isin function(a bit of silvertape)
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     papers = sorted(df[ (df['Name'].isin(lista)) ]['Symbol'].unique())
-    session_state.data_type = st.sidebar.radio("Paper:", papers)
+    st.session_state.data_type = st.sidebar.radio("Paper:", papers)
 
     # get the Ticker from the data frame
-    lista = [session_state.data_type]
+    lista = [st.session_state.data_type]
     df_selected_sector = df[ (df['Symbol'].isin(lista)) ]
 
 
