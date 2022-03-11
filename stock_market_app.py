@@ -384,8 +384,8 @@ This app retrieves the list of the papers from BM&FBOVESPA, Euronext, SIX and NA
 """)
 
 # create a diferente page for every stock market
-if 'mercado' not in st.session_state:
-st.st.session_state.market = 'BM&FBOVESPA'
+if 'market' not in st.session_state:
+    st.session_state.market = 'BM&FBOVESPA'
 
 #st.sidebar.title('Stock Exchange Market')
 # stock market slide box
