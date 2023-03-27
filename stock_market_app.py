@@ -10,11 +10,11 @@ import altair as alt
 #import SessionState
 from typing import Tuple
 import mplfinance as fplt
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
-from sklearn import preprocessing
+##from sklearn.ensemble import RandomForestClassifier
+##from sklearn.datasets import make_classification
+##from sklearn.model_selection import train_test_split
+##from sklearn import metrics
+##from sklearn import preprocessing
 from datetime import datetime, timedelta
 import itertools
 
