@@ -45,14 +45,18 @@ NADAQ_list = sorted([
 # dont show # warnings
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-@st.cache(suppress_st_warning=True)
+#@st.cache(suppress_st_warning=True)
 
-# Set page configuration
+# set alguma coisa
 st.set_page_config(
         page_title="Easy Stock Exchange Data",
         page_icon="📈",
         initial_sidebar_state="expanded")
-#st.title('Stock Exchange Markets app (BM&FBOVESPA, Euronext, SIX, NASDAQ)')
+
+#@st.cache(suppress_st_warning=True)
+
+# Set page configuration
+st.title('Stock Exchange Markets app (BM&FBOVESPA, Euronext, SIX, NASDAQ)')
 
 # Inroduction
 st.sidebar.title('Stock Exchange Markets app')
