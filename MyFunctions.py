@@ -1,5 +1,4 @@
 import pandas as pd
-import MyFunctions
 import base64
 import requests
 import matplotlib.pyplot as plt
