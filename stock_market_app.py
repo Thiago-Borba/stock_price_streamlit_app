@@ -1,4 +1,4 @@
-from sklearn import metrics
+#from sklearn import metrics
 import streamlit as st
 import pandas as pd
 import MyFunctions
@@ -18,7 +18,6 @@ import mplfinance as fplt
 ##from sklearn import metrics
 ##from sklearn import preprocessing
 from datetime import datetime, timedelta
-import itertools
 
 
 start_date = (datetime.now() - timedelta(30))
