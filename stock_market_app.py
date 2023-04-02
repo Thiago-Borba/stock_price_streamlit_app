@@ -78,7 +78,7 @@ if st.session_state.market == 'BM&FBOVESPA':
 
     # upload the b3 table
     df = MyFunctions.load_fundamentus()
-    df = SCORERS(df)
+    #df = SCORERS(df)
     #setor = df.groupby('Setor')
 
     # put the data to be downloaded
