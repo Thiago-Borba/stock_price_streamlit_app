@@ -176,7 +176,6 @@ def random_forest_forecast(ticker):
 
     return sensibilidade, especificidade, precisao, futuro
 
-
 # fucntion to make the data downloadable(dataprofessor)
 def filedownload(df, df_name):
     csv = df.to_csv(index=False)
@@ -225,15 +224,9 @@ def fundlist(lista):
 
     return fund, z_score, s_zscore
 
-
 # dont show # warnings
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-<<<<<<< HEAD
-#@st.cache(suppress_st_warning=True)
-
-# set alguma coisa
-=======
 #calculate de zscore of the fundamentals
 def zscore(df, sector = 'Setor'):
 
@@ -263,7 +256,6 @@ def zscore(df, sector = 'Setor'):
 
     return df
 
-
 # create a candletic chart using mtfploty
 def statick_candlestick(tickerDF):
 
@@ -292,7 +284,6 @@ def statick_candlestick(tickerDF):
                     #mav=2
                     )
         return fig
-
 
 # Create a candlestick layers using altair chart : not being used
 def candlestick(tickerDF: pd.DataFrame) -> Tuple[alt.Chart, alt.Chart, alt.Chart]:
@@ -343,8 +334,6 @@ def int_chart(rule: alt.Chart, bar: alt.Chart, volume: alt.Chart, method = 0) ->
 
         return combined
 
-
-
 @st.cache(suppress_st_warning=True)
 
 # read the first table of an URL
@@ -374,7 +363,6 @@ def load_fundamentus():
 
 
 # Set page configuration
->>>>>>> parent of 1382f07 (Moving the functions out of the app script)
 st.set_page_config(
         page_title="Easy Stock Exchange Data",
         page_icon="📈",
@@ -404,13 +392,13 @@ st.session_state.market = st.sidebar.selectbox('Exchange Market', ['BM&FBOVESPA'
 if st.session_state.market == 'BM&FBOVESPA':
 
     # upload the b3 table
-    df = MyFunctions.load_fundamentus()
+    df = load_fundamentus()
     #df = SCORERS(df)
     #setor = df.groupby('Setor')
 
     # put the data to be downloaded
     df_name = "BM&FBOVESPA.csv"
-    st.sidebar.markdown(MyFunctions.filedownload(df, df_name), unsafe_allow_html=True)
+    st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
     # take the list of Sector to choose
     sorted_sector_unique = sorted(df['Setor'].unique())
@@ -456,7 +444,7 @@ if st.session_state.market == 'BM&FBOVESPA':
     pv = df_selected_sector['P/L'].unique()[0]
 
     #building the lists for the fundamentals dataframe creation
-    fund, zscore , s_zscore = MyFunctions.fundlist(fund_list)
+    fund, zscore , s_zscore = fundlist(fund_list)
 
     #creating the fundamentals dataframe
     hue = pd.DataFrame(columns = fund_list, index = ['value', 'zscore', 'Setorial_zscore'])
@@ -489,7 +477,7 @@ if st.session_state.market == 'BM&FBOVESPA':
 
     # historical prices download
     df_name = f"{papel}.csv"
-    st.markdown(MyFunctions.filedownload(tickerDF, df_name), unsafe_allow_html=True)
+    st.markdown(filedownload(tickerDF, df_name), unsafe_allow_html=True)
 
         ## interactive candlestick
 
@@ -503,7 +491,7 @@ if st.session_state.market == 'BM&FBOVESPA':
 
     # Display static candlestick
     try:
-        fig = MyFunctions.statick_candlestick(tickerDF)
+        fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
         #tickerDF
     except:
@@ -511,7 +499,7 @@ if st.session_state.market == 'BM&FBOVESPA':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
@@ -522,11 +510,9 @@ if st.session_state.market == 'BM&FBOVESPA':
     else:
         st.write('it may take several minutes')
 
-
-
 elif st.session_state.market == 'NASDAQ':
     df = pd.read_csv('NASDAQ.csv')
-    df = MyFunctions.zscore(df, "Industry")
+    df = zscore(df, "Industry")
 
 
     #adjusting the name of columns to fit the code
@@ -539,7 +525,7 @@ elif st.session_state.market == 'NASDAQ':
 
     df = df.drop(columns = 'Unnamed: 0')
     df_name = "NASDAQ.csv"
-    st.sidebar.markdown(MyFunctions.filedownload(df, df_name), unsafe_allow_html=True)
+    st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
 
     sorted_sector_unique = sorted(df['Sector'].unique())
@@ -575,7 +561,7 @@ elif st.session_state.market == 'NASDAQ':
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
     tickerData = yf.Ticker(tickerSymbol)
 
-    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list)
+    fund, zscore , s_zscore = fundlist(NADAQ_list)
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'Industry_zscore'])
     hue.iloc[0] = fund
     hue.iloc[1] = zscore
@@ -603,10 +589,10 @@ elif st.session_state.market == 'NASDAQ':
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
     df_name = f"{papel}.csv"
-    st.markdown(MyFunctions.filedownload(tickerDF, df_name), unsafe_allow_html=True)
+    st.markdown(filedownload(tickerDF, df_name), unsafe_allow_html=True)
 
     try:
-        fig = MyFunctions.statick_candlestick(tickerDF)
+        fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
         #tickerDF
     except:
@@ -614,7 +600,7 @@ elif st.session_state.market == 'NASDAQ':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
@@ -629,7 +615,7 @@ elif st.session_state.market == 'SIX':
 
 
     df = pd.read_csv('SIX.csv')
-    df = MyFunctions.zscore(df, "sector")
+    df = zscore(df, "sector")
 
     #adjusting columns names
     df = df.rename(columns={"industry": "Industry", "ticker": "Ticker", 'Company': 'Name', 'sector': 'Sector'})
@@ -637,7 +623,7 @@ elif st.session_state.market == 'SIX':
 
     #making data downloadable
     df_name = "SIX.csv"
-    st.sidebar.markdown(MyFunctions.filedownload(df, df_name), unsafe_allow_html=True)
+    st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
     #removing na and making sure that Sector and Industry are stings
     df['Sector'] = df['Sector'].replace({"":"Not found"})
@@ -686,7 +672,7 @@ elif st.session_state.market == 'SIX':
 
     tickerData = yf.Ticker(tickerSymbol)
 
-    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list)
+    fund, zscore , s_zscore = fundlist(NADAQ_list)
 
 
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'sector_zscore'])
@@ -721,10 +707,10 @@ elif st.session_state.market == 'SIX':
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
 
     df_name = f"{papel}.csv"
-    st.markdown(MyFunctions.filedownload(tickerDF, df_name), unsafe_allow_html=True)
+    st.markdown(filedownload(tickerDF, df_name), unsafe_allow_html=True)
 
     try:
-        fig = MyFunctions.statick_candlestick(tickerDF)
+        fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
         #tickerDF
     except:
@@ -732,7 +718,7 @@ elif st.session_state.market == 'SIX':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
@@ -743,10 +729,6 @@ elif st.session_state.market == 'SIX':
     else:
         st.write('it may take several minutes')
 
-
-
-
-
 elif st.session_state.market == 'Euronext':
 
     df = pd.read_csv('Euronext.csv', encoding = 'UTF-8' )
@@ -756,14 +738,14 @@ elif st.session_state.market == 'Euronext':
         df[i] = df.apply(lambda x : str(x[i]).replace('?','ø').replace('??','Ø'), axis = 1)
 
 
-    df = MyFunctions.zscore(df, "sector")
+    df = zscore(df, "sector")
 
     #adjusting the columns name for the code
     df = df.rename(columns={"industry": "Industry", "ticker": "Ticker", 'Company': 'Name', 'sector': 'Sector'})
     df = df.drop(columns = 'Unnamed: 0')
     #make the data downloadable
     df_name = "Euronext.csv"
-    st.sidebar.markdown(MyFunctions.filedownload(df, df_name), unsafe_allow_html=True)
+    st.sidebar.markdown(filedownload(df, df_name), unsafe_allow_html=True)
 
     #replacing NA and making sure that industry and Sector are strings
     df['Sector'] = df['Sector'].replace({"":"Not found"})
@@ -818,7 +800,7 @@ elif st.session_state.market == 'Euronext':
 
     tickerData = yf.Ticker(tickerSymbol)
 
-    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list)
+    fund, zscore , s_zscore = fundlist(NADAQ_list)
 
 
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'sector_zscore'])
@@ -847,9 +829,9 @@ elif st.session_state.market == 'Euronext':
     end = st.date_input( "End date" , value=None , min_value=None , max_value=None , key=None )
     tickerDF = tickerData.history(period = '1d', start = start, end = end)
     df_name = f"{papel}.csv"
-    st.markdown(MyFunctions.filedownload(tickerDF, df_name), unsafe_allow_html=True)
+    st.markdown(filedownload(tickerDF, df_name), unsafe_allow_html=True)
     try:
-        fig = MyFunctions.statick_candlestick(tickerDF)
+        fig = statick_candlestick(tickerDF)
         st.pyplot(fig = fig)
         #tickerDF
     except:
@@ -858,7 +840,7 @@ elif st.session_state.market == 'Euronext':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
