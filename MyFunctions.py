@@ -18,7 +18,33 @@ from datetime import datetime, timedelta
 import itertools
 
 
+start_date = (datetime.now() - timedelta(30))
+fund_list = ['P/L', 'P/VP', 'PSR' ,'Div.Yield', 'ROIC', 'ROE', 'Cresc. Rec.5a', 'Mrg Ebit', 'Mrg. Líq.' ]
+
+NADAQ_list = sorted([
+         'ebitdaMargins',
+         'profitMargins',
+         'revenueGrowth',
+         'operatingMargins',
+         'returnOnAssets',
+    #     'recommendationKey',
+         'recommendationMean',
+         'debtToEquity',
+         'totalCashPerShare',
+         'quickRatio',
+         'enterpriseToEbitda',
+         'enterpriseToRevenue',
+         'bookValue',
+         'earningsQuarterlyGrowth',
+         'forwardPE'
+         ])
+
+
+
+
+
 #Un a random forest model
+###
 def random_forest_forecast(ticker):
     # get ticker
     tickerData = yf.Ticker(ticker)
@@ -332,3 +358,5 @@ def load_fundamentus():
         df_b3[i] = df_b3[i]/100
 
     return df_b3
+
+
