@@ -18,8 +18,7 @@ import mplfinance as fplt
 ##from sklearn import preprocessing
 from datetime import datetime, timedelta
 import MyFunctions
-from MyFunctions import fund_list, random_forest_forecast
-from MyFunctions import NADAQ_list
+from MyFunctions import fund_list, NADAQ_list
 start_date = (datetime.now() - timedelta(30))
 
 # dont show # warnings
@@ -63,7 +62,7 @@ if st.session_state.market == 'BM&FBOVESPA':
 
     # take the list of Sector to choose
     sorted_sector_unique = sorted(df['Setor'].unique())
-    
+
     # Sector side bar
     st.session_state.data_type = st.sidebar.multiselect("Sector:", sorted_sector_unique, "Agropecuária")
 
