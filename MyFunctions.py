@@ -39,10 +39,6 @@ NADAQ_list = sorted([
          'forwardPE'
          ])
 
-
-
-
-
 #Un a random forest model
 ###
 def random_forest_forecast(ticker):
@@ -197,7 +193,7 @@ def num_to_time(date):
     return timestamp
 
 #create lists  for the fundamentals dataframe
-def fundlist(lista):
+def fundlist(lista, df_selected_sector):
     fund_list_z = []
     fund_list_s_z = []
     fund = []

@@ -103,7 +103,7 @@ if st.session_state.market == 'BM&FBOVESPA':
     pv = df_selected_sector['P/L'].unique()[0]
 
     #building the lists for the fundamentals dataframe creation
-    fund, zscore , s_zscore = MyFunctions.fundlist(fund_list)
+    fund, zscore , s_zscore = MyFunctions.fundlist(fund_list, df_selected_sector)
 
     #creating the fundamentals dataframe
     hue = pd.DataFrame(columns = fund_list, index = ['value', 'zscore', 'Setorial_zscore'])
@@ -220,7 +220,7 @@ elif st.session_state.market == 'NASDAQ':
     tickerSymbol = df_selected_sector['Ticker'].unique()[0]
     tickerData = yf.Ticker(tickerSymbol)
 
-    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list)
+    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list, df_selected_sector)
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'Industry_zscore'])
     hue.iloc[0] = fund
     hue.iloc[1] = zscore
@@ -331,7 +331,7 @@ elif st.session_state.market == 'SIX':
 
     tickerData = yf.Ticker(tickerSymbol)
 
-    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list)
+    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list, df_selected_sector)
 
 
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'sector_zscore'])
@@ -459,7 +459,7 @@ elif st.session_state.market == 'Euronext':
 
     tickerData = yf.Ticker(tickerSymbol)
 
-    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list)
+    fund, zscore , s_zscore = MyFunctions.fundlist(NADAQ_list, df_selected_sector)
 
 
     hue = pd.DataFrame(columns = NADAQ_list, index = ['value', 'zscore', 'sector_zscore'])
