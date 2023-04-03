@@ -158,7 +158,7 @@ if st.session_state.market == 'BM&FBOVESPA':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
@@ -259,7 +259,7 @@ elif st.session_state.market == 'NASDAQ':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
@@ -377,7 +377,7 @@ elif st.session_state.market == 'SIX':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
@@ -499,7 +499,7 @@ elif st.session_state.market == 'Euronext':
 
     if st.button('predict Up or Down'):
         try:
-            sensibilidade, especificidade, precisao, futuro = random_forest_forecast(tickerSymbol)
+            sensibilidade, especificidade, precisao, futuro = MyFunctions.random_forest_forecast(tickerSymbol)
             st.write(f"""## {futuro}
             * Accuracy: {precisao:.2f}
             * Specificity: {especificidade:.2f}
